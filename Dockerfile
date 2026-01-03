@@ -7,6 +7,7 @@ WORKDIR /app
 COPY Cargo.toml ./
 COPY spacecomms-core ./spacecomms-core
 COPY spacecomms-adapters ./spacecomms-adapters
+COPY tests ./tests
 
 # Build release
 RUN cargo build --release -p spacecomms
