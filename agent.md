@@ -2,12 +2,27 @@
 
 > AI agents working on this repository should follow these guidelines.
 
+**⚠️ If you change behavior or APIs, you must update the documentation in the same PR.**
+
 ## Project Summary
 
 SpaceComms is an open, CDM-centric, BGP-like protocol and reference service for space traffic coordination. It enables interoperable exchange of Conjunction Data Messages (CDMs), ephemeris data, and maneuver intent between satellite operators, STM providers, and regulators.
 
 **Tech Stack**: Rust, HTTP/2 REST API, JSON protocol messages, in-memory + file storage  
 **License**: Apache 2.0
+
+## Documentation Discipline
+
+**Code changes without doc updates are considered incomplete work.**
+
+Every time any feature is added, changed, or removed, you **must**:
+
+1. Update all impacted docs under `docs/` (architecture, protocol-spec, api-reference, operations, etc.)
+2. Update relevant code comments and examples
+3. Run `cargo fmt --check` and linting before committing
+4. Ensure `README.md` reflects any user-facing changes
+
+**Cross-linking**: When updating high-level positioning (problem statement, competitors, analogies), edit `README.md` and `docs/overview-exec.md` together to keep them consistent.
 
 ## Key Directories
 
@@ -112,6 +127,7 @@ cd examples && ./demo.sh
 4. Add handler in `src/node/server.rs`
 5. Add tests in `src/protocol/tests.rs`
 6. Update `docs/protocol-spec.md`
+7. **Update `docs/api-reference.md` and `README.md` to reflect the new message type**
 
 ### Add New Adapter
 
@@ -120,6 +136,7 @@ cd examples && ./demo.sh
 3. Implement adapter trait from `spacecomms-core`
 4. Add integration tests
 5. Document in `docs/architecture.md`
+6. **Update `README.md` project structure section if the adapter is user-facing**
 
 ### Update Docs and Tests for Change X
 
@@ -129,3 +146,4 @@ cd examples && ./demo.sh
 4. Add/update unit tests for new logic
 5. Add/update integration tests for user-facing behavior
 6. Run full test suite before committing
+7. **Verify all links in docs are valid and examples still work**

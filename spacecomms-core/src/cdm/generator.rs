@@ -68,9 +68,9 @@ fn generate_object(
     epoch: DateTime<Utc>,
 ) -> CdmObject {
     // Generate reasonable LEO state vector
-    let altitude_km = 550.0;
+    let altitude_km = 550.0_f64;
     let radius_km = 6378.137 + altitude_km;
-    let velocity_km_s = (398600.4418 / radius_km).sqrt(); // Circular orbit velocity
+    let velocity_km_s = (398600.4418_f64 / radius_km).sqrt(); // Circular orbit velocity
     
     CdmObject {
         object_id: id.to_string(),
