@@ -1,0 +1,18 @@
+[package]
+name = "constellation-hub-mock"
+version = "1.0.0"
+edition = "2021"
+description = "Mock Constellation Hub adapter for SpaceComms"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+axum = { version = "0.7", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.6", features = ["v4"] }
+
+[[bin]]
+name = "constellation-hub-mock"
+path = "src/main.rs"

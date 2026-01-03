@@ -1,0 +1,25 @@
+# SpaceComms Node B Configuration
+# STM Provider
+
+node:
+  id: "node-stm-provider"
+  name: "STM Provider Beta"
+
+server:
+  host: "0.0.0.0"
+  port: 8081
+
+logging:
+  level: "info"
+  format: "pretty"
+
+storage:
+  storage_type: "memory"
+
+protocol:
+  heartbeat_interval_seconds: 30
+  session_timeout_seconds: 120
+  max_hop_count: 10
+
+# No preconfigured peers - will add via API
+peers: []

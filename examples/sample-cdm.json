@@ -1,0 +1,77 @@
+{
+  "cdm_id": "CDM-2024-DEMO-001",
+  "creation_date": "2024-01-15T14:00:00.000Z",
+  "originator": "DEMO-STM-PROVIDER",
+  "message_for": "OPERATOR-ALPHA",
+  "tca": "2024-01-17T08:30:00.000Z",
+  "miss_distance_m": 150.5,
+  "collision_probability": 1.2e-4,
+  "object1": {
+    "object_id": "NORAD-12345",
+    "object_name": "STARLINK-1234",
+    "object_type": "PAYLOAD",
+    "owner_operator": "SpaceX",
+    "maneuverable": true,
+    "state_vector": {
+      "reference_frame": "TEME",
+      "epoch": "2024-01-15T12:00:00.000Z",
+      "x_km": 6878.137,
+      "y_km": 0.0,
+      "z_km": 0.0,
+      "vx_km_s": 0.0,
+      "vy_km_s": 7.612,
+      "vz_km_s": 0.0
+    },
+    "covariance_rtm": {
+      "reference_frame": "RTN",
+      "cr_r": 1.0e-4,
+      "ct_r": 0.0,
+      "ct_t": 1.0e-4,
+      "cn_r": 0.0,
+      "cn_t": 0.0,
+      "cn_n": 1.0e-4
+    }
+  },
+  "object2": {
+    "object_id": "NORAD-99999",
+    "object_name": "FENGYUN-1C-DEB",
+    "object_type": "DEBRIS",
+    "owner_operator": null,
+    "maneuverable": false,
+    "state_vector": {
+      "reference_frame": "TEME",
+      "epoch": "2024-01-15T12:00:00.000Z",
+      "x_km": 6878.2,
+      "y_km": 0.05,
+      "z_km": 0.0,
+      "vx_km_s": 0.0,
+      "vy_km_s": 7.61,
+      "vz_km_s": 0.0
+    },
+    "covariance_rtm": {
+      "reference_frame": "RTN",
+      "cr_r": 1.0e-2,
+      "ct_r": 0.0,
+      "ct_t": 1.0e-2,
+      "cn_r": 0.0,
+      "cn_t": 0.0,
+      "cn_n": 1.0e-2
+    }
+  },
+  "relative_state": {
+    "relative_position_r_m": 50.0,
+    "relative_position_t_m": 100.0,
+    "relative_position_n_m": 25.0,
+    "relative_velocity_r_m_s": 0.5,
+    "relative_velocity_t_m_s": 15000.0,
+    "relative_velocity_n_m_s": 0.1
+  },
+  "screening_data": {
+    "screen_type": "ROUTINE",
+    "screen_volume_shape": "ELLIPSOID",
+    "hard_body_radius_m": 15.0
+  },
+  "data_quality_score": 0.95,
+  "conjunction_category": "HIGH",
+  "recommended_action": "PREPARE"
+}
