@@ -126,14 +126,12 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build release
-        working-directory: spacecomms-core
-        run: cargo build --release
+        run: cargo build --release -p spacecomms
 
       - name: Start node and test health
         run: |
-          cd spacecomms-core
-          ./target/release/spacecomms start --config ../examples/config.yaml &
-          sleep 3
+          ./target/release/spacecomms start --config examples/config.yaml &
+          sleep 5
           
           # Test health endpoint
           HEALTH=$(curl -s http://localhost:8080/health)
