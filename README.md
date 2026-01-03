@@ -70,7 +70,7 @@ Think of it as **BGP for space traffic management**: just as BGP lets internet n
 
 ### Prerequisites
 
-- Rust 1.75+ (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
+- Rust 1.83+ (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
 
 ### Build and Run
 
