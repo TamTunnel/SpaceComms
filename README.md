@@ -3,6 +3,8 @@
 **An open protocol that lets satellite systems share collision warnings and coordinate maneuvers—like air-traffic control radio, but for space.**
 
 [![CI](https://github.com/TamTunnel/SpaceComms/actions/workflows/ci.yml/badge.svg)](https://github.com/TamTunnel/SpaceComms/actions/workflows/ci.yml)
+[![Release](https://github.com/TamTunnel/SpaceComms/actions/workflows/release.yml/badge.svg)](https://github.com/TamTunnel/SpaceComms/actions/workflows/release.yml)
+[![Deploy Dev](https://github.com/TamTunnel/SpaceComms/actions/workflows/deploy-dev.yml/badge.svg)](https://github.com/TamTunnel/SpaceComms/actions/workflows/deploy-dev.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ---
