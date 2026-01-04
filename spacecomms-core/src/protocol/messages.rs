@@ -13,11 +13,14 @@ pub struct HelloPayload {
     /// Human-readable node name
     pub node_name: String,
     
+    /// Protocol version this node is using
+    pub protocol_version: String,
+    
+    /// Supported protocol versions (for negotiation)
+    pub supported_versions: Vec<String>,
+    
     /// Supported capabilities
     pub capabilities: Vec<String>,
-    
-    /// Supported protocol versions
-    pub supported_versions: Vec<String>,
     
     /// Optional authentication token
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,9 +31,125 @@ impl Default for HelloPayload {
     fn default() -> Self {
         Self {
             node_name: "SpaceComms Node".to_string(),
+            protocol_version: PROTOCOL_VERSION.to_string(),
             capabilities: vec!["CDM".to_string(), "OBJECT_STATE".to_string(), "MANEUVER".to_string()],
-            supported_versions: vec!["1.0.0".to_string()],
+            supported_versions: vec!["1.0".to_string(), "1.1".to_string()],
             auth_token: None,
+        }
+    }
+}
+
+/// Current protocol version
+pub const PROTOCOL_VERSION: &str = "1.0";
+
+/// Result of version negotiation
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VersionNegotiationResult {
+    /// Versions are compatible, use the negotiated version
+    Compatible(String),
+    /// Versions are incompatible
+    Incompatible { local: String, remote: String, reason: String },
+}
+
+/// Negotiate protocol version between two nodes
+pub fn negotiate_version(local: &HelloPayload, remote: &HelloPayload) -> VersionNegotiationResult {
+    // Parse major.minor from version strings
+    let parse_version = |v: &str| -> Option<(u32, u32)> {
+        let parts: Vec<&str> = v.split('.').collect();
+        if parts.len() >= 2 {
+            Some((parts[0].parse().ok()?, parts[1].parse().ok()?))
+        } else if parts.len() == 1 {
+            Some((parts[0].parse().ok()?, 0))
+        } else {
+            None
+        }
+    };
+
+    let local_version = parse_version(&local.protocol_version);
+    let remote_version = parse_version(&remote.protocol_version);
+
+    match (local_version, remote_version) {
+        (Some((local_major, local_minor)), Some((remote_major, remote_minor))) => {
+            // Different major versions are incompatible
+            if local_major != remote_major {
+                return VersionNegotiationResult::Incompatible {
+                    local: local.protocol_version.clone(),
+                    remote: remote.protocol_version.clone(),
+                    reason: format!(
+                        "Major version mismatch: local v{}.x vs remote v{}.x",
+                        local_major, remote_major
+                    ),
+                };
+            }
+
+            // Same major, use the lower minor version for compatibility
+            let negotiated_minor = local_minor.min(remote_minor);
+            let negotiated = format!("{}.{}", local_major, negotiated_minor);
+
+            VersionNegotiationResult::Compatible(negotiated)
+        }
+        _ => VersionNegotiationResult::Incompatible {
+            local: local.protocol_version.clone(),
+            remote: remote.protocol_version.clone(),
+            reason: "Could not parse version strings".to_string(),
+        },
+    }
+}
+
+#[cfg(test)]
+mod version_tests {
+    use super::*;
+
+    #[test]
+    fn test_same_version_compatible() {
+        let local = HelloPayload {
+            protocol_version: "1.0".to_string(),
+            ..Default::default()
+        };
+        let remote = HelloPayload {
+            protocol_version: "1.0".to_string(),
+            ..Default::default()
+        };
+
+        match negotiate_version(&local, &remote) {
+            VersionNegotiationResult::Compatible(v) => assert_eq!(v, "1.0"),
+            _ => panic!("Expected compatible"),
+        }
+    }
+
+    #[test]
+    fn test_compatible_minor_difference() {
+        let local = HelloPayload {
+            protocol_version: "1.0".to_string(),
+            ..Default::default()
+        };
+        let remote = HelloPayload {
+            protocol_version: "1.1".to_string(),
+            ..Default::default()
+        };
+
+        match negotiate_version(&local, &remote) {
+            VersionNegotiationResult::Compatible(v) => assert_eq!(v, "1.0"),
+            _ => panic!("Expected compatible"),
+        }
+    }
+
+    #[test]
+    fn test_incompatible_major_difference() {
+        let local = HelloPayload {
+            protocol_version: "1.0".to_string(),
+            ..Default::default()
+        };
+        let remote = HelloPayload {
+            protocol_version: "2.0".to_string(),
+            ..Default::default()
+        };
+
+        match negotiate_version(&local, &remote) {
+            VersionNegotiationResult::Incompatible { reason, .. } => {
+                assert!(reason.contains("Major version mismatch"));
+            }
+            _ => panic!("Expected incompatible"),
         }
     }
 }

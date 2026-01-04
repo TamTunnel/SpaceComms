@@ -485,3 +485,214 @@ services:
       - /tmp
     user: "1000:1000"
 ```
+
+---
+
+## Running Demos
+
+### CLI Demo (5–10 min)
+
+Basic CDM propagation between nodes:
+
+```bash
+cd examples
+./demo.sh
+```
+
+Expected output:
+
+```
+[1/6] Building components...
+[2/6] Starting Space-Track Mock on port 9000...
+[3/6] Starting SpaceComms Node A on port 8080...
+...
+CDM successfully propagated from Node A to Node B!
+```
+
+### GUI Demo (Exec-friendly)
+
+Visual dashboard with real-time data:
+
+```bash
+cd examples
+./demo-gui.sh
+# Open http://localhost:3000
+```
+
+Dashboard shows:
+
+- Node health and uptime
+- Network topology visualization
+- CDM table with collision probabilities
+- Alerts from Constellation Hub
+
+### Secure Demo (mTLS)
+
+Demonstrates secure peer communication:
+
+```bash
+# Generate certificates first
+cd dev-certs && ./generate-certs.sh
+
+cd ../examples
+./demo-secure.sh
+```
+
+What to observe in logs:
+
+```
+INFO  spacecomms::tls > TLS enabled with mTLS
+INFO  spacecomms::peer > Secure peer session established
+```
+
+---
+
+## Logging Examples
+
+### Structured Log Fields
+
+Logs include structured fields for filtering:
+
+```json
+{
+  "timestamp": "2024-01-15T14:30:00.123Z",
+  "level": "INFO",
+  "target": "spacecomms::node::routing",
+  "node_id": "node-alpha-01",
+  "message": "CDM forwarded to peer",
+  "fields": {
+    "cdm_id": "CDM-2024-00001234",
+    "peer_id": "peer-operator-b",
+    "hop_count": 2
+  }
+}
+```
+
+### Key Log Events
+
+| Event                        | Fields                            | Meaning                |
+| ---------------------------- | --------------------------------- | ---------------------- |
+| `CDM received`               | `cdm_id`, `source_node_id`        | New CDM ingested       |
+| `Peer session established`   | `peer_id`, `protocol_version`     | Successful handshake   |
+| `Version negotiation failed` | `local_version`, `remote_version` | Incompatible versions  |
+| `Validation failed`          | `error`, `field`                  | Invalid message format |
+
+---
+
+## Metrics Endpoint
+
+### Sample `/metrics` Response
+
+```json
+{
+  "active_peers": 3,
+  "cdms_announced": 1250,
+  "cdms_withdrawn": 45,
+  "messages_sent": 15420,
+  "messages_received": 14893,
+  "errors": 12,
+  "uptime_seconds": 86400
+}
+```
+
+### Key Counters
+
+| Metric                        | Watch For           | Alert If           |
+| ----------------------------- | ------------------- | ------------------ |
+| `active_peers`                | Should be > 0       | Drops to 0         |
+| `errors`                      | Low, stable         | Rapidly increasing |
+| `cdms_announced`              | Steadily increasing | Flat for > 1 hour  |
+| `messages_sent` vs `received` | Similar counts      | Large divergence   |
+
+---
+
+## Tested Failure Scenarios
+
+The following scenarios have been validated in the test suite:
+
+### 1. Peer Restart Recovery
+
+**Scenario**: Node B restarts while receiving CDMs from Node A
+
+**Expected behavior**:
+
+- Node A detects disconnect via missed heartbeats
+- Node A retries connection automatically
+- After reconnect, pending CDMs are resent
+- System converges to consistent state
+
+**Test command**:
+
+```bash
+# Start nodes, inject CDM, kill Node B, restart, verify CDM present
+```
+
+### 2. Malformed JSON Rejection
+
+**Scenario**: Invalid JSON sent to CDM endpoint
+
+**Expected behavior**:
+
+- Returns HTTP 400 Bad Request
+- Process stays running
+- Peer connections unaffected
+- Error logged with details
+
+**Test**:
+
+```bash
+curl -X POST http://localhost:8080/cdm \
+  -H "Content-Type: application/json" \
+  -d "not valid json"
+# Returns: {"error": "Parse error: ..."}
+```
+
+### 3. Missing Required Fields
+
+**Scenario**: CDM missing `tca` field
+
+**Expected behavior**:
+
+- Returns HTTP 400 with field-specific error
+- Process stays running
+- `errors` metric incremented
+
+**Test**:
+
+```bash
+curl -X POST http://localhost:8080/cdm \
+  -H "Content-Type: application/json" \
+  -d '{"cdm_id": "test"}'
+# Returns: {"error": "Missing required field: tca"}
+```
+
+### 4. Version Mismatch Rejection
+
+**Scenario**: v1.x node connects to v2.x node
+
+**Expected behavior**:
+
+- HELLO exchange occurs
+- Version negotiation fails
+- ERROR message sent with `UNSUPPORTED_VERSION`
+- Connection closed gracefully
+- Event logged
+
+### 5. Unknown Message Type
+
+**Scenario**: Message with unknown `message_type`
+
+**Expected behavior**:
+
+- ERROR response sent to sender
+- Message dropped
+- Peer connection preserved
+- Warning logged
+
+---
+
+## Related Documents
+
+- [Architecture](architecture.md) — System design
+- [Protocol Specification](protocol-spec.md) — Message formats
+- [Demo Guide](demo-guide.md) — Step-by-step demo walkthrough

@@ -634,15 +634,54 @@ All messages should be logged with:
 
 ### Protocol Version
 
-- Semantic versioning: MAJOR.MINOR.PATCH
-- MAJOR: Breaking changes
-- MINOR: New message types or optional fields
-- PATCH: Clarifications or bug fixes
+- Semantic versioning: MAJOR.MINOR
+- MAJOR: Breaking changes (incompatible)
+- MINOR: New message types or optional fields (backward compatible)
+
+### Version Negotiation
+
+During HELLO exchange, nodes negotiate a common protocol version:
+
+**HELLO Payload includes:**
+
+```json
+{
+  "protocol_version": "1.0",
+  "supported_versions": ["1.0", "1.1"]
+}
+```
+
+**Negotiation Rules:**
+
+| Local | Remote | Result    | Negotiated         |
+| ----- | ------ | --------- | ------------------ |
+| 1.0   | 1.0    | ✅ OK     | 1.0                |
+| 1.0   | 1.1    | ✅ OK     | 1.0 (lower minor)  |
+| 1.1   | 1.0    | ✅ OK     | 1.0 (lower minor)  |
+| 1.x   | 2.x    | ❌ Reject | - (major mismatch) |
+
+**On Incompatible Version:**
+
+1. Node sends ERROR message with code `UNSUPPORTED_VERSION`
+2. Connection is closed
+3. Event is logged with both version strings
+
+```json
+{
+  "message_type": "ERROR",
+  "payload": {
+    "error_code": "UNSUPPORTED_VERSION",
+    "error_message": "Major version mismatch: local v1.x vs remote v2.x",
+    "related_message_id": "msg-hello-002"
+  }
+}
+```
 
 ### Compatibility
 
-- Nodes advertise supported versions in HELLO
-- Nodes may implement multiple versions
+- **Same major, different minor**: Compatible, use lower minor version
+- **Different major**: Incompatible, reject connection
+- Nodes advertise supported versions in HELLO for future negotiation
 - Unknown fields must be preserved (forward compatibility)
 - Unknown message types trigger ERROR response
 

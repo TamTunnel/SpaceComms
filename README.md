@@ -108,13 +108,38 @@ cd examples
 
 The dashboard shows connected peers, active CDMs, and network topology.
 
-### Demo Options
+### Secure Demo (mTLS)
 
-| Demo              | Command                              | What It Shows                                                 |
-| ----------------- | ------------------------------------ | ------------------------------------------------------------- |
-| **Multi-Service** | `./demo.sh`                          | Full integration with Space-Track and Constellation Hub mocks |
-| **GUI Dashboard** | `./demo-gui.sh`                      | Visual dashboard with live data                               |
-| **Manual**        | See [Demo Guide](docs/demo-guide.md) | Step-by-step walkthrough                                      |
+For security-focused demonstrations:
+
+```bash
+cd dev-certs && ./generate-certs.sh  # Generate certificates
+cd ../examples && ./demo-secure.sh    # Start with mTLS
+```
+
+### Quick Paths
+
+| Audience           | Time   | Command            | Documentation                                |
+| ------------------ | ------ | ------------------ | -------------------------------------------- |
+| **Executives**     | 5 min  | `./demo-gui.sh`    | [Demo Guide](docs/demo-guide.md)             |
+| **Developers**     | 10 min | `./demo.sh`        | [Protocol Spec](docs/protocol-spec.md)       |
+| **Security/Infra** | 15 min | `./demo-secure.sh` | [Operations](docs/operations-and-runbook.md) |
+
+---
+
+## Current Status
+
+> **Phase 3 Complete** — Ready for technical evaluation
+
+| Feature                | Status          | Notes                                          |
+| ---------------------- | --------------- | ---------------------------------------------- |
+| 🛰️ CDM Exchange        | ✅ Complete     | CCSDS-aligned format, propagation, storage     |
+| 📊 Dashboard           | ✅ Complete     | Web UI with demo mode labels                   |
+| 🔌 Adapters            | ✅ Complete     | Space-Track + Constellation Hub mocks          |
+| 📈 Observability       | ✅ Complete     | `/metrics` endpoint, structured logging        |
+| 🔒 mTLS Security       | ✅ Config ready | TLS configs, certs, secure demo script         |
+| 🔄 Version Negotiation | ✅ Complete     | Protocol version in HELLO, compatibility rules |
+| 🧪 Resilience Tests    | ✅ Complete     | Restart, malformed message, version mismatch   |
 
 ---
 
@@ -126,7 +151,7 @@ The dashboard shows connected peers, active CDMs, and network topology.
 | **[Architecture](docs/architecture.md)**                   | Software Architects | Technical design, component diagrams, decisions    |
 | **[Protocol Specification](docs/protocol-spec.md)**        | Developers          | Message formats, schemas, routing model            |
 | **[API Reference](docs/api-reference.md)**                 | Developers          | REST endpoints and request/response schemas        |
-| [Operations Runbook](docs/operations-and-runbook.md)       | Operations          | Deployment, monitoring, troubleshooting            |
+| [Operations Runbook](docs/operations-and-runbook.md)       | **SRE/Ops**         | Deployment, monitoring, troubleshooting            |
 | [Regulatory Compliance](docs/regulatory-and-compliance.md) | Legal/Policy        | Standards alignment and regulatory FAQ             |
 | [Demo Guide](docs/demo-guide.md)                           | Anyone              | Step-by-step demo walkthrough                      |
 
