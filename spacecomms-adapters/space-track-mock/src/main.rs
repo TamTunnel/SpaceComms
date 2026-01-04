@@ -10,10 +10,12 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
+use std::sync::Arc;
 use tracing::info;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-#[derive(Serialize)]
+// Catalog entry matching fixture structure
+#[derive(Clone, Serialize, Deserialize)]
 struct CatalogEntry {
     norad_id: String,
     object_name: String,
@@ -25,18 +27,60 @@ struct CatalogEntry {
     inclination_deg: f64,
     apogee_km: f64,
     perigee_km: f64,
+    #[serde(default)]
+    rcs_size: Option<String>,
+    #[serde(default)]
+    country_code: Option<String>,
 }
 
-#[derive(Serialize)]
+// Full CDM structure matching our internal format
+#[derive(Clone, Serialize, Deserialize)]
 struct CdmEntry {
     cdm_id: String,
+    creation_date: String,
+    originator: String,
+    message_for: String,
     tca: String,
-    object1_norad: String,
-    object1_name: String,
-    object2_norad: String,
-    object2_name: String,
-    miss_distance_km: f64,
-    pc: f64,
+    miss_distance_m: f64,
+    collision_probability: f64,
+    object1: CdmObject,
+    object2: CdmObject,
+    #[serde(default)]
+    relative_state: Option<RelativeState>,
+    #[serde(default)]
+    screening_data: Option<ScreeningData>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct CdmObject {
+    object_id: String,
+    object_name: String,
+    object_type: String,
+    operator_organization: Option<String>,
+    ephemeris_name: String,
+    covariance_method: String,
+    maneuverable: bool,
+    catalog_source: String,
+    position_x_km: f64,
+    position_y_km: f64,
+    position_z_km: f64,
+    velocity_x_km_s: f64,
+    velocity_y_km_s: f64,
+    velocity_z_km_s: f64,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct RelativeState {
+    relative_speed_m_s: f64,
+    relative_position_r_km: f64,
+    relative_position_t_km: f64,
+    relative_position_n_km: f64,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct ScreeningData {
+    screening_volume_type: String,
+    hard_body_radius_m: f64,
 }
 
 #[derive(Deserialize)]
@@ -45,9 +89,42 @@ struct CatalogQuery {
     norad_id: Option<String>,
     #[serde(default)]
     object_type: Option<String>,
+    #[serde(default)]
+    owner: Option<String>,
 }
 
-fn mock_catalog() -> Vec<CatalogEntry> {
+#[derive(Deserialize)]
+struct CdmQuery {
+    #[serde(default)]
+    object_id: Option<String>,
+    #[serde(default)]
+    min_probability: Option<f64>,
+}
+
+// Shared state with loaded fixtures
+struct AppData {
+    catalog: Vec<CatalogEntry>,
+    cdms: Vec<CdmEntry>,
+}
+
+fn load_fixtures() -> AppData {
+    // Try to load from files, fall back to embedded defaults
+    let catalog: Vec<CatalogEntry> = std::fs::read_to_string("fixtures/catalog.json")
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_else(default_catalog);
+
+    let cdms: Vec<CdmEntry> = std::fs::read_to_string("fixtures/cdms.json")
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_else(default_cdms);
+
+    info!("Loaded {} catalog entries, {} CDMs from fixtures", catalog.len(), cdms.len());
+
+    AppData { catalog, cdms }
+}
+
+fn default_catalog() -> Vec<CatalogEntry> {
     vec![
         CatalogEntry {
             norad_id: "12345".to_string(),
@@ -60,76 +137,22 @@ fn mock_catalog() -> Vec<CatalogEntry> {
             inclination_deg: 53.0,
             apogee_km: 560.0,
             perigee_km: 540.0,
-        },
-        CatalogEntry {
-            norad_id: "54321".to_string(),
-            object_name: "ONEWEB-0123".to_string(),
-            object_type: "PAYLOAD".to_string(),
-            owner: "OneWeb".to_string(),
-            launch_date: "2022-10-20".to_string(),
-            decay_date: None,
-            period_minutes: 127.8,
-            inclination_deg: 87.4,
-            apogee_km: 1200.0,
-            perigee_km: 1195.0,
-        },
-        CatalogEntry {
-            norad_id: "99999".to_string(),
-            object_name: "FENGYUN-1C-DEB".to_string(),
-            object_type: "DEBRIS".to_string(),
-            owner: "PRC".to_string(),
-            launch_date: "1999-05-10".to_string(),
-            decay_date: None,
-            period_minutes: 97.2,
-            inclination_deg: 98.6,
-            apogee_km: 850.0,
-            perigee_km: 780.0,
-        },
-        CatalogEntry {
-            norad_id: "88888".to_string(),
-            object_name: "COSMOS-2251-DEB".to_string(),
-            object_type: "DEBRIS".to_string(),
-            owner: "CIS".to_string(),
-            launch_date: "1993-06-16".to_string(),
-            decay_date: None,
-            period_minutes: 96.8,
-            inclination_deg: 74.0,
-            apogee_km: 800.0,
-            perigee_km: 750.0,
+            rcs_size: Some("MEDIUM".to_string()),
+            country_code: Some("US".to_string()),
         },
     ]
 }
 
-fn mock_cdms() -> Vec<CdmEntry> {
-    vec![
-        CdmEntry {
-            cdm_id: "CDM-MOCK-001".to_string(),
-            tca: "2024-01-20T08:30:00Z".to_string(),
-            object1_norad: "12345".to_string(),
-            object1_name: "STARLINK-1234".to_string(),
-            object2_norad: "99999".to_string(),
-            object2_name: "FENGYUN-1C-DEB".to_string(),
-            miss_distance_km: 0.150,
-            pc: 1.2e-4,
-        },
-        CdmEntry {
-            cdm_id: "CDM-MOCK-002".to_string(),
-            tca: "2024-01-22T14:15:00Z".to_string(),
-            object1_norad: "54321".to_string(),
-            object1_name: "ONEWEB-0123".to_string(),
-            object2_norad: "88888".to_string(),
-            object2_name: "COSMOS-2251-DEB".to_string(),
-            miss_distance_km: 0.500,
-            pc: 5.0e-6,
-        },
-    ]
+fn default_cdms() -> Vec<CdmEntry> {
+    vec![]
 }
 
-async fn get_catalog(Query(params): Query<CatalogQuery>) -> Json<Vec<CatalogEntry>> {
-    let catalog = mock_catalog();
-    
-    let filtered: Vec<CatalogEntry> = catalog
-        .into_iter()
+async fn get_catalog(
+    data: axum::extract::State<Arc<AppData>>,
+    Query(params): Query<CatalogQuery>,
+) -> Json<Vec<CatalogEntry>> {
+    let filtered: Vec<CatalogEntry> = data.catalog
+        .iter()
         .filter(|e| {
             if let Some(ref norad) = params.norad_id {
                 if e.norad_id != *norad {
@@ -141,19 +164,73 @@ async fn get_catalog(Query(params): Query<CatalogQuery>) -> Json<Vec<CatalogEntr
                     return false;
                 }
             }
+            if let Some(ref owner) = params.owner {
+                if e.owner != *owner {
+                    return false;
+                }
+            }
             true
         })
+        .cloned()
         .collect();
-    
+
     Json(filtered)
 }
 
-async fn get_cdms() -> Json<Vec<CdmEntry>> {
-    Json(mock_cdms())
+async fn get_cdms(
+    data: axum::extract::State<Arc<AppData>>,
+    Query(params): Query<CdmQuery>,
+) -> Json<Vec<CdmEntry>> {
+    let filtered: Vec<CdmEntry> = data.cdms
+        .iter()
+        .filter(|c| {
+            if let Some(ref obj_id) = params.object_id {
+                if c.object1.object_id != *obj_id && c.object2.object_id != *obj_id {
+                    return false;
+                }
+            }
+            if let Some(min_prob) = params.min_probability {
+                if c.collision_probability < min_prob {
+                    return false;
+                }
+            }
+            true
+        })
+        .cloned()
+        .collect();
+
+    Json(filtered)
+}
+
+async fn get_cdm_by_id(
+    data: axum::extract::State<Arc<AppData>>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+) -> Result<Json<CdmEntry>, axum::http::StatusCode> {
+    data.cdms
+        .iter()
+        .find(|c| c.cdm_id == id)
+        .cloned()
+        .map(Json)
+        .ok_or(axum::http::StatusCode::NOT_FOUND)
 }
 
 async fn health() -> &'static str {
     "OK"
+}
+
+#[derive(Serialize)]
+struct StatsResponse {
+    catalog_count: usize,
+    cdm_count: usize,
+    status: String,
+}
+
+async fn stats(data: axum::extract::State<Arc<AppData>>) -> Json<StatsResponse> {
+    Json(StatsResponse {
+        catalog_count: data.catalog.len(),
+        cdm_count: data.cdms.len(),
+        status: "running".to_string(),
+    })
 }
 
 #[tokio::main]
@@ -163,10 +240,15 @@ async fn main() {
         .with(EnvFilter::from_default_env().add_directive("info".parse().unwrap()))
         .init();
 
+    let data = Arc::new(load_fixtures());
+
     let app = Router::new()
         .route("/health", get(health))
+        .route("/stats", get(stats))
         .route("/catalog", get(get_catalog))
-        .route("/cdms", get(get_cdms));
+        .route("/cdms", get(get_cdms))
+        .route("/cdms/:id", get(get_cdm_by_id))
+        .with_state(data);
 
     let port = std::env::var("PORT")
         .ok()
@@ -174,7 +256,16 @@ async fn main() {
         .unwrap_or(9000);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    info!("Space-Track Mock running on {}", addr);
+    info!("Space-Track Mock running on http://{}", addr);
+    info!("Endpoints:");
+    info!("  GET /health           - Health check");
+    info!("  GET /stats            - Statistics");
+    info!("  GET /catalog          - List catalog entries");
+    info!("  GET /catalog?norad_id=12345");
+    info!("  GET /catalog?object_type=DEBRIS");
+    info!("  GET /cdms             - List all CDMs");
+    info!("  GET /cdms?object_id=12345");
+    info!("  GET /cdms/:id         - Get specific CDM");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

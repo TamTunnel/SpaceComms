@@ -87,14 +87,34 @@ cargo build --release
 cargo run -- start --config ../examples/config.yaml
 ```
 
-### Run the Demo
+### Quick CLI Demo
 
 ```bash
 cd examples
 ./demo.sh
 ```
 
-This starts two SpaceComms nodes and demonstrates CDM propagation between them.
+This starts two SpaceComms nodes with adapter integration and demonstrates CDM propagation.
+
+### GUI Demo
+
+SpaceComms includes a web dashboard for visualizing node status:
+
+```bash
+cd examples
+./demo-gui.sh
+# Then open http://localhost:3000
+```
+
+The dashboard shows connected peers, active CDMs, and network topology.
+
+### Demo Options
+
+| Demo              | Command                              | What It Shows                                                 |
+| ----------------- | ------------------------------------ | ------------------------------------------------------------- |
+| **Multi-Service** | `./demo.sh`                          | Full integration with Space-Track and Constellation Hub mocks |
+| **GUI Dashboard** | `./demo-gui.sh`                      | Visual dashboard with live data                               |
+| **Manual**        | See [Demo Guide](docs/demo-guide.md) | Step-by-step walkthrough                                      |
 
 ---
 
@@ -120,6 +140,8 @@ SpaceComms/
 ├── spacecomms-adapters/    # Integration adapters
 │   ├── space-track-mock/   # Mock Space-Track API
 │   └── constellation-hub-mock/  # Mock constellation ops
+├── ui/                     # Web dashboard (HTML/CSS/JS)
+├── schemas/                # JSON schemas for CDM validation
 ├── examples/               # Demo scripts and sample data
 ├── tests/                  # Integration tests
 ├── docs/                   # Documentation

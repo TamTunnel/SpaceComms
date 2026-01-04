@@ -1,0 +1,172 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://spacecomms.org/schemas/cdm.schema.json",
+  "title": "Conjunction Data Message",
+  "description": "JSON Schema for SpaceComms CDM, aligned with CCSDS 508.0-B-1 and TraCSS recommendations",
+  "type": "object",
+  "required": [
+    "cdm_id",
+    "creation_date",
+    "tca",
+    "miss_distance_m",
+    "collision_probability",
+    "object1",
+    "object2"
+  ],
+  "properties": {
+    "cdm_id": {
+      "type": "string",
+      "description": "Unique identifier for this CDM",
+      "pattern": "^[A-Za-z0-9-]+$"
+    },
+    "creation_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when this CDM was created"
+    },
+    "originator": {
+      "type": "string",
+      "description": "Organization that created this CDM"
+    },
+    "message_for": {
+      "type": "string",
+      "description": "Primary object this CDM is intended for"
+    },
+    "tca": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time of Closest Approach (UTC)"
+    },
+    "miss_distance_m": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Predicted miss distance in meters"
+    },
+    "collision_probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Probability of collision (0-1)"
+    },
+    "object1": {
+      "$ref": "#/definitions/CdmObject",
+      "description": "Primary object in the conjunction"
+    },
+    "object2": {
+      "$ref": "#/definitions/CdmObject",
+      "description": "Secondary object in the conjunction"
+    },
+    "relative_state": {
+      "$ref": "#/definitions/RelativeState",
+      "description": "Relative state at TCA"
+    },
+    "screening_data": {
+      "$ref": "#/definitions/ScreeningData",
+      "description": "Screening volume information"
+    }
+  },
+  "definitions": {
+    "CdmObject": {
+      "type": "object",
+      "required": ["object_id", "object_name", "object_type"],
+      "properties": {
+        "object_id": {
+          "type": "string",
+          "description": "Catalog identifier (e.g., NORAD ID)"
+        },
+        "object_name": {
+          "type": "string",
+          "description": "Human-readable object name"
+        },
+        "object_type": {
+          "type": "string",
+          "enum": ["PAYLOAD", "DEBRIS", "ROCKET_BODY", "UNKNOWN"],
+          "description": "Type of space object"
+        },
+        "operator_organization": {
+          "type": ["string", "null"],
+          "description": "Operating organization, if known"
+        },
+        "ephemeris_name": {
+          "type": "string",
+          "enum": ["DEFINITIVE", "ESTIMATED", "PREDICTED"],
+          "description": "Quality of ephemeris data"
+        },
+        "covariance_method": {
+          "type": "string",
+          "enum": ["MONTE_CARLO", "ANALYTIC", "UNKNOWN"],
+          "description": "Method used to compute covariance"
+        },
+        "maneuverable": {
+          "type": "boolean",
+          "description": "Whether this object can maneuver"
+        },
+        "catalog_source": {
+          "type": "string",
+          "description": "Source of catalog data (e.g., 18SDS)"
+        },
+        "position_x_km": {
+          "type": "number",
+          "description": "X position in ECI frame (km)"
+        },
+        "position_y_km": {
+          "type": "number",
+          "description": "Y position in ECI frame (km)"
+        },
+        "position_z_km": {
+          "type": "number",
+          "description": "Z position in ECI frame (km)"
+        },
+        "velocity_x_km_s": {
+          "type": "number",
+          "description": "X velocity in ECI frame (km/s)"
+        },
+        "velocity_y_km_s": {
+          "type": "number",
+          "description": "Y velocity in ECI frame (km/s)"
+        },
+        "velocity_z_km_s": {
+          "type": "number",
+          "description": "Z velocity in ECI frame (km/s)"
+        }
+      }
+    },
+    "RelativeState": {
+      "type": "object",
+      "properties": {
+        "relative_speed_m_s": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Relative speed at TCA (m/s)"
+        },
+        "relative_position_r_km": {
+          "type": "number",
+          "description": "Radial separation at TCA (km)"
+        },
+        "relative_position_t_km": {
+          "type": "number",
+          "description": "Along-track separation at TCA (km)"
+        },
+        "relative_position_n_km": {
+          "type": "number",
+          "description": "Cross-track separation at TCA (km)"
+        }
+      }
+    },
+    "ScreeningData": {
+      "type": "object",
+      "properties": {
+        "screening_volume_type": {
+          "type": "string",
+          "enum": ["ELLIPSOID", "BOX", "SPHERE"],
+          "description": "Type of screening volume"
+        },
+        "hard_body_radius_m": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Combined hard body radius (m)"
+        }
+      }
+    }
+  }
+}

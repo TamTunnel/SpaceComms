@@ -15,8 +15,10 @@ use axum::{
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::RwLock;
 use tower_http::trace::TraceLayer;
+use tower_http::cors::{CorsLayer, Any};
 use tracing::info;
 
 /// Shared application state
@@ -27,6 +29,28 @@ pub struct AppState {
     peers: Arc<RwLock<PeerManager>>,
     routing: Arc<RoutingEngine>,
     start_time: chrono::DateTime<Utc>,
+    metrics: Arc<Metrics>,
+}
+
+/// Metrics counters
+pub struct Metrics {
+    pub cdms_announced: AtomicU64,
+    pub cdms_withdrawn: AtomicU64,
+    pub messages_sent: AtomicU64,
+    pub messages_received: AtomicU64,
+    pub errors: AtomicU64,
+}
+
+impl Default for Metrics {
+    fn default() -> Self {
+        Self {
+            cdms_announced: AtomicU64::new(0),
+            cdms_withdrawn: AtomicU64::new(0),
+            messages_sent: AtomicU64::new(0),
+            messages_received: AtomicU64::new(0),
+            errors: AtomicU64::new(0),
+        }
+    }
 }
 
 /// Node HTTP server
@@ -49,14 +73,22 @@ impl NodeServer {
                 peers,
                 routing,
                 start_time: Utc::now(),
+                metrics: Arc::new(Metrics::default()),
             },
         }
     }
 
     /// Run the server
     pub async fn run(self) -> Result<()> {
+        // CORS layer for UI development
+        let cors = CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any);
+
         let app = Router::new()
             .route("/health", get(health))
+            .route("/metrics", get(metrics))
             .route("/cdm", post(ingest_cdm))
             .route("/cdms", get(list_cdms))
             .route("/cdms/:id", get(get_cdm))
@@ -66,11 +98,13 @@ impl NodeServer {
             .route("/peers", post(add_peer))
             .route("/peers/:id", delete(remove_peer))
             .route("/maneuvers", post(announce_maneuver))
+            .layer(cors)
             .layer(TraceLayer::new_for_http())
             .with_state(self.state.clone());
 
         let addr = format!("{}:{}", self.state.config.server.host, self.state.config.server.port);
         info!("Listening on {}", addr);
+        info!("Dashboard available at http://{}/ui/", addr);
 
         let listener = tokio::net::TcpListener::bind(&addr).await?;
         axum::serve(listener, app).await?;
@@ -199,6 +233,17 @@ struct ErrorResponse {
     message: String,
 }
 
+#[derive(Serialize)]
+struct MetricsResponse {
+    active_peers: usize,
+    cdms_announced: u64,
+    cdms_withdrawn: u64,
+    messages_sent: u64,
+    messages_received: u64,
+    errors: u64,
+    uptime_seconds: i64,
+}
+
 // ============================================================================
 // Handlers
 // ============================================================================
@@ -220,6 +265,21 @@ async fn health(State(state): State<AppState>) -> Json<HealthResponse> {
         objects_tracked: object_count,
         cdms_active: cdm_count,
         version: env!("CARGO_PKG_VERSION").to_string(),
+    })
+}
+
+async fn metrics(State(state): State<AppState>) -> Json<MetricsResponse> {
+    let peers = state.peers.read().await;
+    let uptime = Utc::now() - state.start_time;
+
+    Json(MetricsResponse {
+        active_peers: peers.connected_count(),
+        cdms_announced: state.metrics.cdms_announced.load(Ordering::Relaxed),
+        cdms_withdrawn: state.metrics.cdms_withdrawn.load(Ordering::Relaxed),
+        messages_sent: state.metrics.messages_sent.load(Ordering::Relaxed),
+        messages_received: state.metrics.messages_received.load(Ordering::Relaxed),
+        errors: state.metrics.errors.load(Ordering::Relaxed),
+        uptime_seconds: uptime.num_seconds(),
     })
 }
 
@@ -265,6 +325,9 @@ async fn ingest_cdm(
         .collect();
 
     info!("CDM accepted, would forward to {} peers", propagated_to.len());
+
+    // Update metrics
+    state.metrics.cdms_announced.fetch_add(1, Ordering::Relaxed);
 
     Ok((
         StatusCode::CREATED,

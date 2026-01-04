@@ -1,111 +1,130 @@
 #!/bin/bash
-# SpaceComms Demo Script
-# Demonstrates CDM propagation between two nodes
+# SpaceComms Multi-Service Demo
+# 
+# This script starts all demo services and demonstrates CDM propagation
+# across SpaceComms nodes with adapter integration.
 
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CORE_DIR="$SCRIPT_DIR/../spacecomms-core"
-BINARY="$CORE_DIR/target/release/spacecomms"
-
-echo -e "${BLUE}=== SpaceComms Demo ===${NC}"
+echo -e "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║       SpaceComms Multi-Service Demo                       ║${NC}"
+echo -e "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if binary exists
-if [ ! -f "$BINARY" ]; then
-    echo "Building SpaceComms..."
-    cd "$CORE_DIR"
-    cargo build --release
-    cd "$SCRIPT_DIR"
-fi
-
-# Function to cleanup on exit
-cleanup() {
-    echo ""
-    echo -e "${BLUE}Cleaning up...${NC}"
-    kill $NODE_A_PID 2>/dev/null || true
-    kill $NODE_B_PID 2>/dev/null || true
-    echo "Done."
+# Build all components
+echo -e "${YELLOW}[1/6] Building components...${NC}"
+cd "$PROJECT_ROOT"
+cargo build --release --workspace 2>/dev/null || {
+    echo -e "${RED}Build failed. Make sure Rust is installed.${NC}"
+    exit 1
 }
-trap cleanup EXIT
 
-# Start Node A
-echo -e "${BLUE}[1/4] Starting Node A (Operator Alpha)...${NC}"
-$BINARY start --config node-a-config.yaml > /tmp/node-a.log 2>&1 &
+# Start Space-Track Mock
+echo -e "${YELLOW}[2/6] Starting Space-Track Mock on port 9000...${NC}"
+cd "$PROJECT_ROOT/spacecomms-adapters/space-track-mock"
+PORT=9000 cargo run --release &
+SPACE_TRACK_PID=$!
+sleep 2
+
+# Start SpaceComms Node A
+echo -e "${YELLOW}[3/6] Starting SpaceComms Node A on port 8080...${NC}"
+cd "$PROJECT_ROOT"
+./target/release/spacecomms start --config examples/config.yaml &
 NODE_A_PID=$!
 sleep 2
 
-if ps -p $NODE_A_PID > /dev/null; then
-    echo -e "${GREEN}✓ Node A started on port 8080${NC}"
-else
-    echo -e "${RED}✗ Failed to start Node A${NC}"
-    cat /tmp/node-a.log
-    exit 1
-fi
+# Start SpaceComms Node B
+echo -e "${YELLOW}[4/6] Starting SpaceComms Node B on port 8081...${NC}"
+cat > /tmp/node-b-config.yaml << EOF
+node:
+  id: "node-b-demo"
+  name: "SpaceComms Node B"
 
-# Start Node B
-echo -e "${BLUE}[2/4] Starting Node B (STM Provider)...${NC}"
-$BINARY start --config node-b-config.yaml > /tmp/node-b.log 2>&1 &
+server:
+  host: "0.0.0.0"
+  port: 8081
+
+peers: []
+
+security:
+  enable_tls: false
+
+logging:
+  level: "info"
+  format: "pretty"
+EOF
+./target/release/spacecomms start --config /tmp/node-b-config.yaml &
 NODE_B_PID=$!
 sleep 2
 
-if ps -p $NODE_B_PID > /dev/null; then
-    echo -e "${GREEN}✓ Node B started on port 8081${NC}"
-else
-    echo -e "${RED}✗ Failed to start Node B${NC}"
-    cat /tmp/node-b.log
-    exit 1
-fi
+# Start Constellation Hub Mock
+echo -e "${YELLOW}[5/6] Starting Constellation Hub Mock on port 9001...${NC}"
+cd "$PROJECT_ROOT/spacecomms-adapters/constellation-hub-mock"
+PORT=9001 SPACECOMMS_URL=http://localhost:8080 cargo run --release &
+CONSTELLATION_PID=$!
+sleep 3
 
-# Establish peer connection
-echo -e "${BLUE}[3/4] Establishing peer connection...${NC}"
-curl -s -X POST http://localhost:8080/peers \
-    -H "Content-Type: application/json" \
-    -d '{"peer_id": "peer-stm-provider", "address": "http://localhost:8081"}' > /dev/null
+# Cleanup function
+cleanup() {
+    echo -e "\n${YELLOW}Shutting down services...${NC}"
+    kill $SPACE_TRACK_PID 2>/dev/null || true
+    kill $NODE_A_PID 2>/dev/null || true
+    kill $NODE_B_PID 2>/dev/null || true
+    kill $CONSTELLATION_PID 2>/dev/null || true
+    rm -f /tmp/node-b-config.yaml
+    echo -e "${GREEN}All services stopped.${NC}"
+}
+trap cleanup EXIT
 
-curl -s -X POST http://localhost:8081/peers \
-    -H "Content-Type: application/json" \
-    -d '{"peer_id": "peer-operator-alpha", "address": "http://localhost:8080"}' > /dev/null
-
-echo -e "${GREEN}✓ Nodes connected as peers${NC}"
-
-# Inject sample CDM
-echo -e "${BLUE}[4/4] Injecting sample CDM...${NC}"
-RESPONSE=$(curl -s -X POST http://localhost:8080/cdm \
-    -H "Content-Type: application/json" \
-    -d @sample-cdm.json)
-
-CDM_ID=$(echo "$RESPONSE" | grep -o '"cdm_id":"[^"]*"' | cut -d'"' -f4)
-echo -e "${GREEN}✓ $CDM_ID injected to Node A${NC}"
-
+# Demo flow
+echo -e "${YELLOW}[6/6] Running demo flow...${NC}"
 echo ""
-echo -e "${BLUE}=== Verifying CDM Storage ===${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}All services are running:${NC}"
+echo -e "  • Space-Track Mock:       ${BLUE}http://localhost:9000${NC}"
+echo -e "  • SpaceComms Node A:      ${BLUE}http://localhost:8080${NC}"
+echo -e "  • SpaceComms Node B:      ${BLUE}http://localhost:8081${NC}"
+echo -e "  • Constellation Hub Mock: ${BLUE}http://localhost:9001${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
 echo ""
 
-# Check Node A
-echo "Node A CDMs:"
-curl -s http://localhost:8080/cdms | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/cdms
+# Fetch CDMs from Space-Track mock and inject into SpaceComms
+echo -e "${YELLOW}Fetching CDMs from Space-Track Mock...${NC}"
+CDM=$(curl -s http://localhost:9000/cdms | jq '.[0]')
+echo -e "${GREEN}Got CDM: $(echo $CDM | jq -r .cdm_id)${NC}"
 
 echo ""
+echo -e "${YELLOW}Injecting CDM into SpaceComms Node A...${NC}"
+RESULT=$(curl -s -X POST http://localhost:8080/cdm \
+  -H "Content-Type: application/json" \
+  -d "$CDM")
+echo -e "${GREEN}Result: $(echo $RESULT | jq -r .status)${NC}"
 
-# Check health
-echo "Node A health:"
-curl -s http://localhost:8080/health | python3 -m json.tool 2>/dev/null || curl -s http://localhost:8080/health
+echo ""
+echo -e "${YELLOW}Checking Node A CDM list...${NC}"
+curl -s http://localhost:8080/cdms | jq '.total, .cdms[].cdm_id'
 
 echo ""
-echo -e "${BLUE}=== Demo Complete ===${NC}"
-echo "CDM successfully stored in Node A!"
+echo -e "${YELLOW}Checking Constellation Hub alerts (satellite STARLINK-1234 is registered)...${NC}"
+sleep 5  # Wait for poller
+curl -s http://localhost:9001/alerts | jq '.total, .unacknowledged, .alerts[].severity'
+
 echo ""
-echo "In a full implementation, the CDM would be propagated to Node B via the protocol layer."
-echo "Check logs at /tmp/node-a.log and /tmp/node-b.log for details."
+echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}Demo complete! Services are still running.${NC}"
+echo -e "${GREEN}Press Ctrl+C to stop all services.${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════════════════════${NC}"
 echo ""
-echo "Press Ctrl+C to stop the demo..."
 
 # Keep running until interrupted
 wait

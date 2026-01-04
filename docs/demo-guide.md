@@ -361,3 +361,163 @@ After completing this demo:
 3. **Add more nodes**: Start a third node and create a mesh
 4. **Explore the API**: [API Reference](api-reference.md)
 5. **Review operations**: [Operations Runbook](operations-and-runbook.md)
+
+---
+
+## Multi-Service Demo
+
+This demo shows SpaceComms integrated with external adapters.
+
+### Components
+
+- **SpaceComms Node A** (port 8080) - Primary node
+- **SpaceComms Node B** (port 8081) - Secondary node
+- **Space-Track Mock** (port 9000) - Simulates Space-Track API
+- **Constellation Hub Mock** (port 9001) - Simulates constellation operator
+
+### Running the Demo
+
+```bash
+cd examples
+chmod +x demo.sh
+./demo.sh
+```
+
+### What Happens
+
+1. Space-Track Mock starts with pre-loaded catalog and CDMs
+2. Two SpaceComms nodes start and peer with each other
+3. Constellation Hub Mock starts monitoring SpaceComms for CDMs
+4. A CDM is fetched from Space-Track and injected into SpaceComms
+5. Constellation Hub detects the CDM affects a registered satellite
+6. An alert is generated in Constellation Hub
+
+### Manual Steps
+
+```bash
+# 1. Fetch available CDMs from Space-Track mock
+curl http://localhost:9000/cdms | jq
+
+# 2. Inject a CDM into SpaceComms
+curl -X POST http://localhost:8080/cdm \
+  -H "Content-Type: application/json" \
+  -d "$(curl -s http://localhost:9000/cdms | jq '.[0]')"
+
+# 3. Check alerts in Constellation Hub
+curl http://localhost:9001/alerts | jq
+
+# 4. Acknowledge an alert
+curl -X POST http://localhost:9001/alerts/{alert-id}/acknowledge
+```
+
+---
+
+## GUI Demo
+
+SpaceComms includes a web-based dashboard for visualizing node status and CDM data.
+
+### Running the GUI Demo
+
+```bash
+cd examples
+chmod +x demo-gui.sh
+./demo-gui.sh
+```
+
+This starts:
+
+- SpaceComms node on port 8080
+- Web UI server on port 3000
+
+### Opening the Dashboard
+
+Open your browser to: **http://localhost:3000**
+
+Or if serving manually:
+
+```bash
+cd ui
+python3 -m http.server 3000
+# Then open http://localhost:3000
+```
+
+### Dashboard Features
+
+| Panel           | Description                                 |
+| --------------- | ------------------------------------------- |
+| **Health**      | Node status, uptime, peer count, CDM count  |
+| **Topology**    | Visual representation of connected peers    |
+| **Peers Table** | List of connected peers with message counts |
+| **CDMs Table**  | Active conjunction warnings with key data   |
+| **Metrics**     | Announced/withdrawn CDMs, error counts      |
+
+### Connecting to a Different Node
+
+Use the `?node=` query parameter:
+
+```
+http://localhost:3000?node=http://localhost:8081
+```
+
+### Demo Flow
+
+1. Start the GUI demo: `./demo-gui.sh`
+2. Open http://localhost:3000 in your browser
+3. In another terminal, inject a CDM:
+   ```bash
+   curl -X POST http://localhost:8080/cdm \
+     -H "Content-Type: application/json" \
+     -d @sample-cdm.json
+   ```
+4. Watch the dashboard update automatically (refreshes every 5 seconds)
+
+### What to Observe
+
+- **Health panel**: CDM count increases
+- **CDMs table**: New CDM appears with object IDs and collision probability
+- **Topology**: Shows connected peers (none in single-node demo)
+
+---
+
+## Secure Demo (mTLS)
+
+For demonstrations requiring secure peering, see the mTLS configuration in `examples/node-a-tls-config.yaml`.
+
+### Prerequisites
+
+Generate demo certificates:
+
+```bash
+cd dev-certs
+./generate-certs.sh
+```
+
+### Starting Secure Nodes
+
+```bash
+# Node A with TLS
+./spacecomms start --config examples/node-a-tls-config.yaml
+
+# Node B with TLS
+./spacecomms start --config examples/node-b-tls-config.yaml
+```
+
+### Verifying Secure Connection
+
+Look for these log messages:
+
+```
+INFO  spacecomms::tls > TLS enabled with mTLS
+INFO  spacecomms::peer > Secure peer session established
+```
+
+---
+
+## Demo Summary
+
+| Demo          | Command           | Duration | Shows                    |
+| ------------- | ----------------- | -------- | ------------------------ |
+| Quick CLI     | `./demo.sh` (old) | 5 min    | Basic CDM propagation    |
+| Multi-Service | `./demo.sh`       | 10 min   | Full adapter integration |
+| GUI           | `./demo-gui.sh`   | 5 min    | Visual dashboard         |
+| Secure        | Manual + certs    | 15 min   | mTLS peering             |

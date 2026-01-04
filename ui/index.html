@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpaceComms Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <div class="logo">
+            <span class="logo-icon">🛰️</span>
+            <h1>SpaceComms</h1>
+        </div>
+        <div class="status-bar">
+            <span id="connection-status" class="status-indicator disconnected">● Disconnected</span>
+            <span id="node-id" class="node-info"></span>
+        </div>
+    </header>
+
+    <main>
+        <section class="health-panel">
+            <h2>Node Health</h2>
+            <div class="health-grid">
+                <div class="health-card">
+                    <span class="health-label">Status</span>
+                    <span id="health-status" class="health-value">--</span>
+                </div>
+                <div class="health-card">
+                    <span class="health-label">Uptime</span>
+                    <span id="health-uptime" class="health-value">--</span>
+                </div>
+                <div class="health-card">
+                    <span class="health-label">Active Peers</span>
+                    <span id="health-peers" class="health-value">--</span>
+                </div>
+                <div class="health-card">
+                    <span class="health-label">CDMs Tracked</span>
+                    <span id="health-cdms" class="health-value">--</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="topology-panel">
+            <h2>Network Topology</h2>
+            <div class="topology-container">
+                <svg id="topology-svg" viewBox="0 0 600 300"></svg>
+            </div>
+        </section>
+
+        <div class="data-panels">
+            <section class="peers-panel">
+                <h2>Connected Peers <span id="peers-count" class="count-badge">0</span></h2>
+                <div class="table-container">
+                    <table id="peers-table">
+                        <thead>
+                            <tr>
+                                <th>Peer ID</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th>Messages</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="empty-row">
+                                <td colspan="4">No peers connected</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="cdms-panel">
+                <h2>Active CDMs <span id="cdms-count" class="count-badge">0</span></h2>
+                <div class="table-container">
+                    <table id="cdms-table">
+                        <thead>
+                            <tr>
+                                <th>CDM ID</th>
+                                <th>Object 1</th>
+                                <th>Object 2</th>
+                                <th>TCA</th>
+                                <th>Miss Distance</th>
+                                <th>Probability</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="empty-row">
+                                <td colspan="6">No CDMs available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <section class="metrics-panel">
+            <h2>Metrics</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-label">CDMs Announced</span>
+                    <span id="metric-announced" class="metric-value">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">CDMs Withdrawn</span>
+                    <span id="metric-withdrawn" class="metric-value">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Messages Sent</span>
+                    <span id="metric-sent" class="metric-value">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Errors</span>
+                    <span id="metric-errors" class="metric-value error">0</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>SpaceComms Protocol v1.0 • <a href="https://github.com/TamTunnel/SpaceComms" target="_blank">GitHub</a></p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
