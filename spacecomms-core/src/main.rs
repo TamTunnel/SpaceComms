@@ -168,19 +168,19 @@ async fn main() -> Result<()> {
         }
         Commands::Cdm { command } => {
             setup_logging(Level::INFO);
-            
+
             match command {
                 CdmCommands::Inject { address, file } => {
                     let content = std::fs::read_to_string(&file)?;
                     let cdm: serde_json::Value = serde_json::from_str(&content)?;
-                    
+
                     let client = reqwest::Client::new();
                     let resp = client
                         .post(format!("{}/cdm", address))
                         .json(&cdm)
                         .send()
                         .await?;
-                    
+
                     if resp.status().is_success() {
                         info!("CDM injected successfully");
                         println!("{}", resp.text().await?);
@@ -191,11 +191,8 @@ async fn main() -> Result<()> {
                 }
                 CdmCommands::List { address } => {
                     let client = reqwest::Client::new();
-                    let resp = client
-                        .get(format!("{}/cdms", address))
-                        .send()
-                        .await?;
-                    
+                    let resp = client.get(format!("{}/cdms", address)).send().await?;
+
                     if resp.status().is_success() {
                         let json: serde_json::Value = resp.json().await?;
                         println!("{}", serde_json::to_string_pretty(&json)?);
@@ -208,13 +205,10 @@ async fn main() -> Result<()> {
         }
         Commands::Objects { address } => {
             setup_logging(Level::INFO);
-            
+
             let client = reqwest::Client::new();
-            let resp = client
-                .get(format!("{}/objects", address))
-                .send()
-                .await?;
-            
+            let resp = client.get(format!("{}/objects", address)).send().await?;
+
             if resp.status().is_success() {
                 let json: serde_json::Value = resp.json().await?;
                 println!("{}", serde_json::to_string_pretty(&json)?);
