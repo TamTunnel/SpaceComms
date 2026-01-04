@@ -193,12 +193,19 @@ This reference implementation demonstrates protocol viability. Production deploy
 
 ## Next Steps
 
-| Stakeholder    | Recommended Action                                                       |
-| -------------- | ------------------------------------------------------------------------ |
-| **Operators**  | Review [Architecture](architecture.md), evaluate integration path        |
-| **Regulators** | Review [Regulatory Compliance](regulatory-and-compliance.md)             |
-| **Developers** | Try the [Demo](demo-guide.md), explore [API Reference](api-reference.md) |
-| **Executives** | Share with technical teams for feasibility assessment                    |
+| **Operators** | Review [Architecture](architecture.md), evaluate integration path |
+| **Regulators** | Review [Regulatory Compliance](regulatory-and-compliance.md) |
+| **Developers** | Try the [Demo](demo-guide.md), explore [Interop Guide](interop-guide.md) |
+| **Executives** | Share with technical teams for feasibility assessment |
+
+---
+
+## Open Development
+
+SpaceComms is an open-source initiative with transparent governance.
+
+- **Implement Your Own**: We provide a full [Interop Guide](interop-guide.md) for building compatible nodes in any language.
+- **Influence Standards**: Join the [Governance Process](governance-and-evolution.md) to propose protocol changes.
 
 ---
 

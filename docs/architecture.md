@@ -339,14 +339,27 @@ Structured JSON logs via `tracing`:
 }
 ```
 
-### Metrics (Future)
+### Metrics
 
-Prometheus-compatible metrics endpoint:
+Prometheus-compatible metrics endpoint exposed at `/metrics`:
 
-- Message counts by type
-- Latency histograms
-- Peer connection status
-- Storage utilization
+- Message counters (sent/received/errors)
+- Peer connectivity gauges
+- Protocol statistics (CDMs active/announced)
+
+---
+
+## Performance Considerations
+
+Detailed performance characteristics are documented in [Performance & Scaling](performance-and-scaling.md).
+
+### Design Choices
+
+- **Async Networking**: Built on Tokio for non-blocking I/O, allowing thousands of concurrent connections.
+- **Message Parsing**: Zero-copy deserialization where possible (serde_json).
+- **Stateless Verification**: Most validation checks do not require database lookups, increasing throughput.
+
+For benchmarking methodology and scale assumptions, see the performance guide.
 
 ---
 
@@ -411,3 +424,4 @@ CMD ["spacecomms", "start", "--config", "/etc/spacecomms/config.yaml"]
 - [Protocol Specification](protocol-spec.md) - Message formats and schemas
 - [API Reference](api-reference.md) - REST endpoint details
 - [Operations Runbook](operations-and-runbook.md) - Deployment and troubleshooting
+- [Performance & Scaling](performance-and-scaling.md) - Benchmarking and scale assumptions

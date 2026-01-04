@@ -687,8 +687,29 @@ During HELLO exchange, nodes negotiate a common protocol version:
 
 ---
 
+## Interoperability Expectations
+
+To interoperate at the "basic" level, an independent implementation MUST:
+
+- Support the current **protocol version** and `HELLO` negotiation.
+- Implement core message types (`HELLO`, `OBJECT_STATE_ANNOUNCE`, `CDM_ANNOUNCE`, `_WITHDRAW`, `HEARTBEAT`).
+- Respect the **JSON schema** for CDMs (see [`schemas/cdm.schema.json`](../schemas/cdm.schema.json)).
+- **Ignore** unknown optional fields (forward compatibility).
+- Use the standard envelope format for all messages.
+
+### Conformance Levels
+
+| Level       | Role              | Capabilities                                                                     |
+| ----------- | ----------------- | -------------------------------------------------------------------------------- |
+| **Level 0** | Observer          | Read-only; subscribes to CDMs/Objects, maintains state, does not originate data. |
+| **Level 1** | Producer/Consumer | Originate CDMs/Object States, receive and forward messages, basic routing.       |
+| **Level 2** | Full Node         | Full routing logic, policy enforcement, mTLS security, history/query support.    |
+
+---
+
 ## Related Documents
 
 - [CCSDS 508.0-B-1](https://public.ccsds.org/Pubs/508x0b1e2.pdf) - CDM Recommended Standard
 - [Architecture](architecture.md) - System design
 - [API Reference](api-reference.md) - REST endpoints
+- [Interop Guide](interop-guide.md) - Guide for third-party implementers

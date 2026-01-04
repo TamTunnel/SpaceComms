@@ -141,6 +141,16 @@ cd ../examples && ./demo-secure.sh    # Start with mTLS
 | 🔄 Version Negotiation | ✅ Complete     | Protocol version in HELLO, compatibility rules |
 | 🧪 Resilience Tests    | ✅ Complete     | Restart, malformed message, version mismatch   |
 
+## Governance & Evolution
+
+SpaceComms is community-driven with a clear path for protocol evolution.
+
+- **Changes**: Managed via RFC-like proposals.
+- **Versioning**: Strict semantic versioning for protocol stability.
+- **Future**: Path to support international standards (CCSDS/ISO).
+
+See [Governance & Evolution](docs/governance-and-evolution.md) for details.
+
 ---
 
 ## Documentation
@@ -150,10 +160,12 @@ cd ../examples && ./demo-secure.sh    # Start with mTLS
 | **[Executive Overview](docs/overview-exec.md)**            | Executives, Policy  | Plain-language benefits, deployment scenarios, FAQ |
 | **[Architecture](docs/architecture.md)**                   | Software Architects | Technical design, component diagrams, decisions    |
 | **[Protocol Specification](docs/protocol-spec.md)**        | Developers          | Message formats, schemas, routing model            |
+| **[Interop Guide](docs/interop-guide.md)**                 | **Implementers**    | Build your own compatible node in any language     |
 | **[API Reference](docs/api-reference.md)**                 | Developers          | REST endpoints and request/response schemas        |
-| [Operations Runbook](docs/operations-and-runbook.md)       | **SRE/Ops**         | Deployment, monitoring, troubleshooting            |
+| [Operations Runbook](docs/operations-and-runbook.md)       | SRE/Ops             | Deployment, monitoring, troubleshooting            |
+| [Performance & Scaling](docs/performance-and-scaling.md)   | SRE/Architects      | Benchmarking guide and scale assumptions           |
+| [Governance](docs/governance-and-evolution.md)             | Contributors        | Change process and versioning policy               |
 | [Regulatory Compliance](docs/regulatory-and-compliance.md) | Legal/Policy        | Standards alignment and regulatory FAQ             |
-| [Demo Guide](docs/demo-guide.md)                           | Anyone              | Step-by-step demo walkthrough                      |
 
 ---
 

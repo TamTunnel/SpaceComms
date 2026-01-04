@@ -696,3 +696,14 @@ curl -X POST http://localhost:8080/cdm \
 - [Architecture](architecture.md) — System design
 - [Protocol Specification](protocol-spec.md) — Message formats
 - [Demo Guide](demo-guide.md) — Step-by-step demo walkthrough
+
+---
+
+## Feedback and Evolution
+
+We encourage operators running pilots or production nodes to share their experiences.
+
+- **Performance**: If you scale beyond the defaults, please share metrics (see [Performance & Scaling](performance-and-scaling.md)).
+- **Governance**: Proposed changes to the protocol should follow the [Governance Process](governance-and-evolution.md).
+
+Your operational feedback is critical for evolving SpaceComms into a global standard.
