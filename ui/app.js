@@ -6,6 +6,7 @@
 // Configuration
 const CONFIG = {
   nodeUrl: window.location.origin, // Default to same origin
+  constellationHubUrl: "http://localhost:9001", // Constellation Hub Mock
   refreshInterval: 5000, // 5 seconds
   maxRetries: 3,
 };
@@ -17,6 +18,7 @@ let state = {
   peers: [],
   cdms: [],
   metrics: null,
+  alerts: [],
   retryCount: 0,
 };
 
@@ -37,6 +39,9 @@ const elements = {
   metricWithdrawn: document.getElementById("metric-withdrawn"),
   metricSent: document.getElementById("metric-sent"),
   metricErrors: document.getElementById("metric-errors"),
+  alertsPanel: document.getElementById("alerts-panel"),
+  alertsCount: document.getElementById("alerts-count"),
+  alertsTable: document.getElementById("alerts-table"),
 };
 
 // API Functions
@@ -65,6 +70,16 @@ async function fetchMetrics() {
     return response.json();
   } catch {
     return null;
+  }
+}
+
+async function fetchAlerts() {
+  try {
+    const response = await fetch(`${CONFIG.constellationHubUrl}/alerts`);
+    if (!response.ok) return { alerts: [] };
+    return response.json();
+  } catch {
+    return { alerts: [] };
   }
 }
 
@@ -101,13 +116,13 @@ function updateHealth(health) {
     elements.healthUptime.textContent = formatUptime(health.uptime_seconds);
   }
 
-  // Peers
-  elements.healthPeers.textContent =
-    health.peer_count !== undefined ? health.peer_count : "--";
+  // Peers - handle both nested and flat formats
+  const peerCount = health.peers?.connected ?? health.peer_count ?? "--";
+  elements.healthPeers.textContent = peerCount;
 
   // CDMs
   elements.healthCdms.textContent =
-    health.cdm_count !== undefined ? health.cdm_count : "--";
+    health.cdms_active ?? health.cdm_count ?? "--";
 
   // Node ID
   if (health.node_id) {
@@ -153,7 +168,7 @@ function updateCdms(cdmsData) {
 
   if (cdms.length === 0) {
     tbody.innerHTML =
-      '<tr class="empty-row"><td colspan="6">No CDMs available</td></tr>';
+      '<tr class="empty-row"><td colspan="6">No CDMs available — <em>Inject one via Space-Track Mock</em></td></tr>';
     return;
   }
 
@@ -166,8 +181,49 @@ function updateCdms(cdmsData) {
                 <td>${cdm.object1_id || "--"}</td>
                 <td>${cdm.object2_id || "--"}</td>
                 <td>${formatDate(cdm.tca)}</td>
-                <td>${cdm.miss_distance ? cdm.miss_distance.toFixed(3) + " km" : "--"}</td>
+                <td>${cdm.miss_distance_m ? (cdm.miss_distance_m / 1000).toFixed(3) + " km" : "--"}</td>
                 <td class="${riskClass}">${cdm.collision_probability ? formatProbability(cdm.collision_probability) : "--"}</td>
+            </tr>
+        `;
+    })
+    .join("");
+}
+
+function updateAlerts(alertsData) {
+  const alerts = alertsData.alerts || [];
+  state.alerts = alerts;
+
+  // Show/hide alerts panel based on whether there are alerts
+  if (elements.alertsPanel) {
+    elements.alertsPanel.style.display = alerts.length > 0 ? "block" : "none";
+  }
+
+  if (elements.alertsCount) {
+    elements.alertsCount.textContent =
+      alertsData.unacknowledged || alerts.length;
+  }
+
+  if (!elements.alertsTable) return;
+
+  const tbody = elements.alertsTable.querySelector("tbody");
+
+  if (alerts.length === 0) {
+    tbody.innerHTML =
+      '<tr class="empty-row"><td colspan="6">No alerts</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = alerts
+    .map((alert) => {
+      const severityClass = (alert.severity || "low").toLowerCase();
+      return `
+            <tr>
+                <td><span class="severity-badge ${severityClass}">${alert.severity || "N/A"}</span></td>
+                <td>${alert.satellite_name || "--"}</td>
+                <td><code>${alert.cdm_id ? alert.cdm_id.slice(0, 16) : "--"}</code></td>
+                <td>${formatDate(alert.tca)}</td>
+                <td class="${getRiskClass(alert.collision_probability)}">${alert.collision_probability ? formatProbability(alert.collision_probability) : "--"}</td>
+                <td><span class="status-badge ${alert.acknowledged ? "connected" : "pending"}">${alert.acknowledged ? "Acked" : "New"}</span></td>
             </tr>
         `;
     })
@@ -213,7 +269,7 @@ function updateTopology() {
     edge.setAttribute("y2", y);
     edge.setAttribute(
       "class",
-      `topology-edge ${peer.status === "connected" ? "active" : ""}`,
+      `topology-edge ${peer.status === "Connected" || peer.status === "connected" ? "active" : ""}`,
     );
     svg.appendChild(edge);
 
@@ -294,15 +350,24 @@ function getRiskClass(probability) {
   return "risk-low";
 }
 
+// Modal toggle function (global for onclick)
+window.toggleDemoInfo = function () {
+  const modal = document.getElementById("demo-modal");
+  if (modal) {
+    modal.style.display = modal.style.display === "none" ? "flex" : "none";
+  }
+};
+
 // Main Update Loop
 async function refresh() {
   try {
-    // Fetch all data in parallel
-    const [health, peers, cdms, metrics] = await Promise.all([
+    // Fetch all data in parallel (including alerts from Constellation Hub)
+    const [health, peers, cdms, metrics, alerts] = await Promise.all([
       fetchHealth().catch(() => null),
       fetchPeers().catch(() => ({ peers: [] })),
       fetchCdms().catch(() => ({ cdms: [] })),
       fetchMetrics(),
+      fetchAlerts(),
     ]);
 
     if (health) {
@@ -315,6 +380,7 @@ async function refresh() {
     updatePeers(peers);
     updateCdms(cdms);
     updateMetrics(metrics);
+    updateAlerts(alerts);
     updateTopology();
   } catch (error) {
     console.error("Refresh failed:", error);
@@ -326,6 +392,7 @@ async function refresh() {
 // Initialize
 function init() {
   console.log("SpaceComms Dashboard initializing...");
+  console.log("🔬 Demo Mode: Connecting to mock services");
 
   // Check for custom node URL in query params
   const urlParams = new URLSearchParams(window.location.search);
@@ -333,6 +400,12 @@ function init() {
   if (customUrl) {
     CONFIG.nodeUrl = customUrl;
     console.log("Using custom node URL:", CONFIG.nodeUrl);
+  }
+
+  const hubUrl = urlParams.get("hub");
+  if (hubUrl) {
+    CONFIG.constellationHubUrl = hubUrl;
+    console.log("Using custom hub URL:", CONFIG.constellationHubUrl);
   }
 
   // Initial refresh

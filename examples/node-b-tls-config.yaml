@@ -1,0 +1,39 @@
+# SpaceComms Node B - TLS Enabled Configuration
+# 
+# This configuration enables mTLS for secure peer communication.
+# See dev-certs/README.md for certificate generation.
+
+node:
+  id: "node-beta-secure"
+  name: "SpaceComms Node Beta (Secure)"
+
+server:
+  host: "0.0.0.0"
+  port: 8444  # Different port for TLS
+
+# TLS Configuration
+tls:
+  enabled: true
+  cert_path: "dev-certs/node-b.crt"
+  key_path: "dev-certs/node-b.key"
+  ca_path: "dev-certs/ca.crt"
+  require_client_cert: true  # Enforce mTLS
+
+# Peers (connect to Node A with TLS)
+peers:
+  - id: "node-alpha-secure"
+    address: "https://localhost:8443"  # Note: https
+    tls:
+      ca_path: "dev-certs/ca.crt"
+      cert_path: "dev-certs/node-b.crt"
+      key_path: "dev-certs/node-b.key"
+
+# Security settings
+security:
+  enable_tls: true
+  auth_mode: "mtls"
+
+# Logging
+logging:
+  level: "info"
+  format: "pretty"

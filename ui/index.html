@@ -15,14 +15,26 @@
             <h1>SpaceComms</h1>
         </div>
         <div class="status-bar">
+            <span class="demo-badge" title="Running with simulated data for demonstration">🔬 DEMO MODE</span>
             <span id="connection-status" class="status-indicator disconnected">● Disconnected</span>
             <span id="node-id" class="node-info"></span>
         </div>
     </header>
 
+    <!-- Demo Mode Banner -->
+    <div class="demo-banner">
+        <strong>📡 Demo Mode Active</strong> — Data shown is simulated for demonstration purposes.
+        <span class="demo-sources">
+            Sources: <em>Space-Track Mock</em> (catalog/CDMs) • <em>Constellation Hub Mock</em> (alerts)
+        </span>
+    </div>
+
     <main>
         <section class="health-panel">
-            <h2>Node Health</h2>
+            <h2>
+                Node Health
+                <span class="source-tag" title="Live data from SpaceComms node">📍 SpaceComms Node</span>
+            </h2>
             <div class="health-grid">
                 <div class="health-card">
                     <span class="health-label">Status</span>
@@ -44,15 +56,26 @@
         </section>
 
         <section class="topology-panel">
-            <h2>Network Topology</h2>
+            <h2>
+                Network Topology
+                <span class="source-tag" title="Shows peer-to-peer connections">🔗 Peer Mesh</span>
+            </h2>
             <div class="topology-container">
                 <svg id="topology-svg" viewBox="0 0 600 300"></svg>
+                <div class="topology-legend">
+                    <span class="legend-item"><span class="legend-dot self"></span> This Node</span>
+                    <span class="legend-item"><span class="legend-dot peer"></span> Peer Node</span>
+                    <span class="legend-item"><span class="legend-line"></span> Active Connection</span>
+                </div>
             </div>
         </section>
 
         <div class="data-panels">
             <section class="peers-panel">
-                <h2>Connected Peers <span id="peers-count" class="count-badge">0</span></h2>
+                <h2>
+                    Connected Peers <span id="peers-count" class="count-badge">0</span>
+                    <span class="source-tag" title="Other SpaceComms nodes in the mesh">🌐 Mesh Network</span>
+                </h2>
                 <div class="table-container">
                     <table id="peers-table">
                         <thead>
@@ -73,7 +96,12 @@
             </section>
 
             <section class="cdms-panel">
-                <h2>Active CDMs <span id="cdms-count" class="count-badge">0</span></h2>
+                <h2>
+                    Active CDMs <span id="cdms-count" class="count-badge">0</span>
+                    <span class="source-tag mock" title="In demo: CDMs from Space-Track Mock">📦 Space-Track Mock</span>
+                </h2>
+                <p class="panel-description">Conjunction Data Messages (collision warnings) received from tracking
+                    providers</p>
                 <div class="table-container">
                     <table id="cdms-table">
                         <thead>
@@ -88,7 +116,7 @@
                         </thead>
                         <tbody>
                             <tr class="empty-row">
-                                <td colspan="6">No CDMs available</td>
+                                <td colspan="6">No CDMs available — <em>Inject one via Space-Track Mock</em></td>
                             </tr>
                         </tbody>
                     </table>
@@ -96,8 +124,40 @@
             </section>
         </div>
 
+        <!-- New: Constellation Hub Alerts Section -->
+        <section class="alerts-panel" id="alerts-panel" style="display: none;">
+            <h2>
+                Constellation Alerts <span id="alerts-count" class="count-badge alert">0</span>
+                <span class="source-tag mock" title="Alerts from Constellation Hub Mock">🔔 Constellation Hub
+                    Mock</span>
+            </h2>
+            <p class="panel-description">Alerts generated when CDMs affect registered constellation satellites</p>
+            <div class="table-container">
+                <table id="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Satellite</th>
+                            <th>CDM ID</th>
+                            <th>TCA</th>
+                            <th>Collision Prob.</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="empty-row">
+                            <td colspan="6">No alerts</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <section class="metrics-panel">
-            <h2>Metrics</h2>
+            <h2>
+                Metrics
+                <span class="source-tag" title="Counters from SpaceComms node">📊 Node Metrics</span>
+            </h2>
             <div class="metrics-grid">
                 <div class="metric-card">
                     <span class="metric-label">CDMs Announced</span>
@@ -120,8 +180,27 @@
     </main>
 
     <footer>
-        <p>SpaceComms Protocol v1.0 • <a href="https://github.com/TamTunnel/SpaceComms" target="_blank">GitHub</a></p>
+        <p>SpaceComms Protocol v1.0 • <a href="https://github.com/TamTunnel/SpaceComms" target="_blank">GitHub</a> • <a
+                href="#" onclick="toggleDemoInfo()">What is Demo Mode?</a></p>
     </footer>
+
+    <!-- Demo Info Modal -->
+    <div id="demo-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close" onclick="toggleDemoInfo()">&times;</span>
+            <h3>🔬 About Demo Mode</h3>
+            <p>This dashboard is running in <strong>demonstration mode</strong> with simulated data sources:</p>
+            <ul>
+                <li><strong>Space-Track Mock</strong> (port 9000) — Simulates Space-Track API with a catalog of
+                    satellites and sample CDMs</li>
+                <li><strong>Constellation Hub Mock</strong> (port 9001) — Simulates a constellation operator monitoring
+                    for collision alerts</li>
+                <li><strong>SpaceComms Nodes</strong> — Real protocol nodes exchanging CDM data</li>
+            </ul>
+            <p>In production, these would connect to real tracking providers and operations centers.</p>
+            <button onclick="toggleDemoInfo()">Got it</button>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
